@@ -149,3 +149,5 @@ CORS_ALLOWED_ORIGINS = config(
 
 
 AUTH_USER_MODEL = "api.CustomUser"
+# Gemini API Configuration
+GEMINI_API_KEY = config("GEMINI_API_KEY", default=None)

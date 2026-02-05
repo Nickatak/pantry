@@ -1,28 +1,9 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+/**
+ * Authentication API endpoints and utilities
+ * Handles user registration, login, profile management, and token storage
+ */
 
-export async function apiCall(endpoint: string, options: RequestInit = {}) {
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
-  }
-
-  return response.json();
-}
+import { apiCall, API_BASE_URL } from './core';
 
 export interface AuthTokens {
   access: string;
@@ -34,7 +15,19 @@ export interface User {
   email: string;
 }
 
-export async function register(email: string, password: string, passwordConfirm: string): Promise<User> {
+/**
+ * Register a new user account
+ *
+ * @param email - User email address
+ * @param password - User password
+ * @param passwordConfirm - Password confirmation
+ * @returns New user object
+ */
+export async function register(
+  email: string,
+  password: string,
+  passwordConfirm: string
+): Promise<User> {
   const response = await fetch(`${API_BASE_URL}/auth/register/`, {
     method: 'POST',
     headers: {
@@ -55,6 +48,13 @@ export async function register(email: string, password: string, passwordConfirm:
   return response.json();
 }
 
+/**
+ * Log in with email and password
+ *
+ * @param email - User email address
+ * @param password - User password
+ * @returns Auth tokens (access and refresh)
+ */
 export async function login(email: string, password: string): Promise<AuthTokens> {
   const response = await fetch(`${API_BASE_URL}/auth/login/`, {
     method: 'POST',
@@ -75,10 +75,21 @@ export async function login(email: string, password: string): Promise<AuthTokens
   return response.json();
 }
 
+/**
+ * Fetch the current user's profile
+ *
+ * @returns Current user object
+ */
 export async function getProfile(): Promise<User> {
   return apiCall('/auth/profile/');
 }
 
+/**
+ * Update the current user's profile
+ *
+ * @param email - New email address
+ * @returns Updated user object
+ */
 export async function updateProfile(email: string): Promise<User> {
   return apiCall('/auth/profile/', {
     method: 'PUT',
@@ -86,6 +97,12 @@ export async function updateProfile(email: string): Promise<User> {
   });
 }
 
+/**
+ * Store auth tokens in localStorage
+ * Also enables offline-first approach and automatic token injection
+ *
+ * @param tokens - Auth tokens from login/register
+ */
 export function setTokens(tokens: AuthTokens) {
   if (typeof window !== 'undefined') {
     localStorage.setItem('accessToken', tokens.access);
@@ -93,6 +110,11 @@ export function setTokens(tokens: AuthTokens) {
   }
 }
 
+/**
+ * Retrieve the access token from localStorage
+ *
+ * @returns Access token or null if not authenticated
+ */
 export function getAccessToken(): string | null {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('accessToken');
@@ -100,8 +122,13 @@ export function getAccessToken(): string | null {
   return null;
 }
 
+/**
+ * Clear all auth tokens from localStorage
+ * Effectively logs the user out
+ */
 export function clearTokens() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-  }}
+  }
+}
