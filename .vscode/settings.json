@@ -1,0 +1,28 @@
+{
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/htmlcov": true,
+    "**/.coverage": true,
+    "**/.DS_Store": true,
+    "**/*.egg-info": true,
+    "**/.mypy_cache": true,
+    "**/*.sqlite3": true
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.venv": true,
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/htmlcov": true,
+    "**/.mypy_cache": true
+  },
+  "[git-commit]": {
+    "editor.rulers": [50, 72]
+  }
+}
