@@ -2,16 +2,23 @@
 Django settings for core project.
 """
 
+import re
 from datetime import timedelta
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-change-me-in-production"
+SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me-in-production")
 
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="localhost,127.0.0.1",
+    cast=lambda v: [s.strip() for s in v.split(",")],
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -58,12 +65,35 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Database configuration from environment
+DATABASE_URL = config("DATABASE_URL", default="sqlite:///db.sqlite3")
+
+if DATABASE_URL.startswith("sqlite"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+elif DATABASE_URL.startswith("postgresql"):
+    # Parse PostgreSQL URL: postgresql://user:password@host:port/dbname
+    match = re.match(r"postgresql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
+    if match:
+        user, password, host, port, name = match.groups()
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": name,
+                "USER": user,
+                "PASSWORD": password,
+                "HOST": host,
+                "PORT": port,
+            }
+        }
+    else:
+        raise ValueError(f"Invalid PostgreSQL DATABASE_URL format: {DATABASE_URL}")
+else:
+    raise ValueError(f"Unsupported DATABASE_URL format: {DATABASE_URL}")
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -111,12 +141,11 @@ SIMPLE_JWT = {
     "JTI_CLAIM": "jti",
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+    cast=lambda v: [s.strip() for s in v.split(",")],
+)
 
 
 AUTH_USER_MODEL = "api.CustomUser"
