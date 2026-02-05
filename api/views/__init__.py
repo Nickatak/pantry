@@ -1,3 +1,4 @@
 from .auth import AuthViewSet
+from .barcode import BarcodeViewSet
 
-__all__ = ["AuthViewSet"]
+__all__ = ["AuthViewSet", "BarcodeViewSet"]

@@ -1,10 +1,11 @@
 from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
-from .views import AuthViewSet
+from .views import AuthViewSet, BarcodeViewSet
 
 router = DefaultRouter()
 router.register(r"auth", AuthViewSet, basename="auth")
+router.register(r"barcode", BarcodeViewSet, basename="barcode")
 
 urlpatterns = [
     # Explicit route for search-users with hyphens
