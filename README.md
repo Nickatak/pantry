@@ -1,14 +1,16 @@
-# Template Repository
+# Pantry App
 
-A full-stack template repository with JWT authentication, user management, and dashboard routing. Built with Django REST Framework (backend) and Next.js (frontend).
+A modern app for easily scanning and tracking items in your kitchen—pantry, fridge, or freezer. Built with Django REST Framework (backend) and Next.js (frontend).
 
-This template provides a foundation for applications requiring user authentication. The auth flow redirects authenticated users to a dashboard which can be customized for any application use case.
+The Pantry App provides a low-friction way to keep your household inventory organized. Scan barcodes, add items manually, and instantly know what you have on hand. Perfect for reducing food waste and meal planning.
 
 ## Features
 
-- **JWT Authentication**: Secure token-based authentication with login/register/logout flows
-- **User Management**: Custom user model with email-based authentication
-- **Protected Routes**: Dashboard accessible only to authenticated users
+- **Barcode Scanning**: Quick item capture with barcode scanning
+- **Multi-Location Tracking**: Organize items by storage location (pantry, fridge, freezer)
+- **Item Management**: Add, remove, and track quantities of items
+- **JWT Authentication**: Secure token-based authentication with login/register flows
+- **User Accounts**: Personal inventory management with email-based authentication
 - **Responsive UI**: Modern frontend built with Next.js and Tailwind CSS
 - **API-Driven**: Clean separation between backend API and frontend consumer
 
@@ -127,7 +129,7 @@ make kill
 1. User registers or logs in via `/login` or `/register` pages
 2. Credentials are verified against the backend JWT auth endpoints
 3. JWT token is stored securely in the frontend
-4. Authenticated users are redirected to `/dashboard`
+4. Authenticated users are redirected to `/dashboard` (inventory dashboard)
 5. Dashboard is protected and requires valid authentication token
 
 ## API Endpoints
@@ -139,7 +141,11 @@ make kill
 
 ## Customization
 
-Replace the dashboard page with your application logic. The authentication and routing infrastructure is already in place and can be extended for any use case.
+The core authentication infrastructure is in place. The next steps are to:
+- Build out the inventory dashboard with scanning capabilities
+- Create APIs for item management (add, remove, update)
+- Implement storage location organization
+- Add item details and quantity tracking
 
 ## Hidden Files and Directories
 
