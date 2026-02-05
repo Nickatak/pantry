@@ -73,7 +73,7 @@ export default function DashboardPage() {
       <div className="container mx-auto p-8">
         <div className="bg-slate-800 rounded-lg shadow-xl p-8 max-w-2xl border border-slate-700">
           <h2 className="text-3xl font-bold mb-6 text-white">Welcome, {user?.email}!</h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300">Email</label>

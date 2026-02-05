@@ -1,4 +1,4 @@
-.PHONY: help migrate runserver install run-frontend run-backend dev venv kill test test-api test-e2e test-auth test-watch test-cov
+.PHONY: help install run-frontend run-backend dev venv kill test test-api test-e2e test-cov pre-commit-install
 VENV_DIR := .venv
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
@@ -7,19 +7,17 @@ PYTEST := $(VENV_DIR)/bin/pytest
 help:
 	@echo "Available commands:"
 	@echo "  make venv              Create virtual environment"
-	@echo "  make install           Install dependencies"
+	@echo "  make install           Install dependencies and run migrations"
+	@echo "  make pre-commit-install Setup pre-commit hooks"
 	@echo "  make run-backend       Start Django development server"
 	@echo "  make run-frontend      Start Next.js development server"
 	@echo "  make dev               Start both backend and frontend servers"
-	@echo "  make shell             Start Django shell"
 	@echo "  make kill              Stop servers on ports 3000 and 8000"
 	@echo ""
 	@echo "Testing commands:"
 	@echo "  make test              Run all tests"
 	@echo "  make test-api          Run API-level tests only"
 	@echo "  make test-e2e          Run browser-based E2E tests"
-	@echo "  make test-auth         Run authentication tests"
-	@echo "  make test-watch        Run tests in watch mode"
 	@echo "  make test-cov          Run tests with coverage report"
 
 venv:
@@ -28,10 +26,13 @@ venv:
 
 install: venv
 	$(PIP) install -r requirements.txt
+	$(PYTHON) manage.py migrate
 	cd frontend && npm install
 
-shell:
-	$(PYTHON) manage.py shell
+pre-commit-install:
+	@echo "Setting up pre-commit hooks..."
+	$(PYTHON) -m pre_commit install
+	@echo "Pre-commit hooks installed successfully!"
 
 run-backend:
 	$(PYTHON) manage.py runserver
@@ -72,17 +73,7 @@ test-e2e:
 	@echo "Note: Ensure frontend and backend are running on localhost:3000 and localhost:8000"
 	$(PYTEST) tests/test_auth_e2e.py -v
 
-test-auth:
-	@echo "Running all authentication tests..."
-	$(PYTEST) tests/ -v -m auth
-
-test-watch:
-	@echo "Running tests in watch mode..."
-	$(PYTEST) tests/ -v --looponfail
-
 test-cov:
 	@echo "Running tests with coverage report..."
 	$(PYTEST) tests/ -v --cov=api --cov-report=html --cov-report=term-missing
 	@echo "Coverage report generated in htmlcov/index.html"
-
-

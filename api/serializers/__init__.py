@@ -1,7 +1,7 @@
 from .user import (
-    UserSerializer,
-    UserRegistrationSerializer,
     CustomTokenObtainPairSerializer,
+    UserRegistrationSerializer,
+    UserSerializer,
 )
 
 __all__ = [

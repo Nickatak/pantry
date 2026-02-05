@@ -43,7 +43,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("This email address is already registered.")
+            raise serializers.ValidationError(
+                "This email address is already registered."
+            )
         return value
 
     def validate(self, data):
@@ -51,14 +53,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password_confirm = data.get("password_confirm")
 
         if password != password_confirm:
-            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+            raise serializers.ValidationError(
+                {"password_confirm": "Passwords do not match."}
+            )
 
         return data
 
     def create(self, validated_data):
         validated_data.pop("password_confirm")
         password = validated_data.pop("password")
-        user = User.objects.create_user(email=validated_data["email"], password=password)
+        user = User.objects.create_user(
+            email=validated_data["email"], password=password
+        )
         return user
 
 

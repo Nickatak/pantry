@@ -50,18 +50,22 @@ class AuthViewSet(viewsets.ViewSet):
         password = request.data.get("password", "")
 
         if not email:
-            return Response({"email": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"email": "Email is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not password:
             return Response(
-                {"password": "Password is required."}, status=status.HTTP_400_BAD_REQUEST
+                {"password": "Password is required."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Check if user exists
         user = User.objects.filter(email=email).first()
         if not user:
             return Response(
-                {"detail": "Email or password is incorrect."}, status=status.HTTP_401_UNAUTHORIZED
+                {"detail": "Email or password is incorrect."},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         # Try to get token using the serializer
@@ -71,7 +75,8 @@ class AuthViewSet(viewsets.ViewSet):
 
         # If serializer fails, provide generic error message for security
         return Response(
-            {"detail": "Email or password is incorrect."}, status=status.HTTP_401_UNAUTHORIZED
+            {"detail": "Email or password is incorrect."},
+            status=status.HTTP_401_UNAUTHORIZED,
         )
 
     @action(detail=False, methods=["post"])
@@ -85,7 +90,9 @@ class AuthViewSet(viewsets.ViewSet):
         - password_confirm: str
         """
         if User.objects.filter(email=request.data.get("email")).exists():
-            return Response({"email": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"email": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -112,9 +119,14 @@ class AuthViewSet(viewsets.ViewSet):
             user = request.user
 
             if "email" in request.data:
-                if User.objects.filter(email=request.data["email"]).exclude(id=user.id).exists():
+                if (
+                    User.objects.filter(email=request.data["email"])
+                    .exclude(id=user.id)
+                    .exists()
+                ):
                     return Response(
-                        {"email": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST
+                        {"email": "Email already exists."},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
                 user.email = request.data["email"]
 

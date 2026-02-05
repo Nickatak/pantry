@@ -2,7 +2,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost
 
 export async function apiCall(endpoint: string, options: RequestInit = {}) {
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,

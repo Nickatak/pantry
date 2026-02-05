@@ -32,13 +32,13 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
       <div className="w-full max-w-md px-8 py-12 bg-slate-800 rounded-lg shadow-xl border border-slate-700">
         <h1 className="text-3xl font-bold text-white mb-8 text-center">Login</h1>
-        
+
         {error && (
           <div className="mb-4 p-4 bg-red-900/20 border border-red-500 rounded text-red-200">
             {error}
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-200 mb-2">
@@ -54,7 +54,7 @@ export default function LoginPage() {
               required
             />
           </div>
-          
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-2">
               Password
@@ -69,7 +69,7 @@ export default function LoginPage() {
               required
             />
           </div>
-          
+
           <button
             type="submit"
             disabled={isLoading}
@@ -78,7 +78,7 @@ export default function LoginPage() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        
+
         <p className="mt-6 text-center text-slate-400">
           Don't have an account?{' '}
           <Link href="/register" className="text-blue-400 hover:text-blue-300">
