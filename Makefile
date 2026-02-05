@@ -29,6 +29,10 @@ venv:
 	$(PIP) install --upgrade pip
 
 install: venv
+	@echo "Setting up environment files..."
+	@[ -f .env.dev ] || cp .env.example .env.dev
+	@[ -f .env.prod ] || cp .env.example .env.prod
+	./scripts/toggle-env.sh dev
 	$(PIP) install -r requirements.txt
 	$(PYTHON) manage.py migrate
 	cd frontend && npm install

@@ -20,6 +20,42 @@ The Pantry App provides a low-friction way to keep your household inventory orga
 - Node.js 16+
 - Make (usually pre-installed on macOS/Linux, install via `choco` or `winget` on Windows)
 
+## Environment Configuration
+
+This project uses environment-specific configuration files managed through symlinks:
+
+### Setup
+
+1. **Automatic setup** during `make install`:
+   - `.env.dev` and `.env.prod` are automatically copied from `.env.example` (if they don't exist)
+   - Development environment is automatically activated via toggle-env script
+
+2. **Edit the environment files** with your specific settings (optional for development, required for production):
+   - `.env.dev` - Development configuration (DEBUG=True, SQLite, etc.)
+   - `.env.prod` - Production configuration (DEBUG=False, production database, etc.)
+   - `.env.example` - Template file (tracked in git, do not modify for sensitive data)
+
+3. **Switch environments** (if needed):
+   ```bash
+   ./scripts/toggle-env.sh dev   # Use development environment
+   # or
+   ./scripts/toggle-env.sh prod  # Use production environment
+   ```
+
+The script creates a `.env` symlink pointing to your chosen environment file.
+
+### Environment Script Commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/toggle-env.sh dev` | Activate development environment |
+| `./scripts/toggle-env.sh prod` | Activate production environment |
+| `./scripts/toggle-env.sh current` | Show active environment |
+| `./scripts/toggle-env.sh status` | Show environment files status |
+| `./scripts/toggle-env.sh help` | Display script help |
+
+> **Note**: Development environment is automatically activated during `make install`. Use these commands to switch between environments or check the current environment status.
+
 ### Initial Setup
 
 ```bash
@@ -28,9 +64,13 @@ make install
 
 This will:
 - Create a Python virtual environment (`.venv`)
+- Automatically copy `.env.example` to `.env.dev` and `.env.prod` (if they don't exist)
+- Activate the **development environment** (`.env.dev`) via the toggle-env script
 - Install all backend dependencies
 - Run database migrations
 - Install frontend dependencies
+
+> **Deployment Note**: The `make install` command automatically sets up a development environment. For production deployment, run `./scripts/toggle-env.sh prod` after updating `.env.prod` with production values.
 
 ## Development - Dev User
 
