@@ -33,6 +33,15 @@ repos:
         args: ["--max-line-length=120"]
         exclude: "migrations/"
 
+  # Commit message validation (Conventional Commits for semantic versioning)
+  - repo: local
+    hooks:
+      - id: commitlint
+        name: Commit message validation
+        entry: .venv/bin/python scripts/commit-msg-validator.py
+        language: system
+        stages: [commit-msg]
+
   # JavaScript/TypeScript linting
   - repo: local
     hooks:
