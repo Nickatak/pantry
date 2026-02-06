@@ -166,7 +166,7 @@ class TestRegistrationFlow:
             pass
 
     @pytest.mark.asyncio
-    async def test_registration_password_mismatch_shows_field(self, page, db_reset):
+    async def test_registration_password_mismatch_shows_field(self, page, db):
         """Test that password mismatch can be detected."""
         from asgiref.sync import sync_to_async
 
