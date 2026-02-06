@@ -22,5 +22,7 @@ export {
 // Barcode API
 export {
   processBarcodeImage,
+  lookupItemByUPC,
   type ProcessBarcodeResult,
+  type ItemData,
 } from './barcode';
