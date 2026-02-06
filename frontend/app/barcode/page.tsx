@@ -14,14 +14,11 @@ import { ResultsView } from './components/ResultsView';
 /**
  * BARCODE SCANNER PAGE
  *
- * FUTURE INTEGRATION: UPC Database Lookup
- * API: https://upcdatabase.org/api
- *
- * Once a barcode is detected, we can call the UPC database API to get product information:
- * - GET /json/{barcode} - Returns product details (name, brand, etc.)
- * - This should be integrated after barcode detection
- * - Consider caching results locally to reduce API calls
- * - TODO: Implement product lookup and display in results view
+ * FLOW:
+ * 1. User captures image with camera
+ * 2. Image sent to /api/barcode/process/ - extracts barcode/UPC
+ * 3. UPC sent to /api/items/{UPC} - retrieves product information
+ * 4. Product details displayed in ResultsView
  */
 
 export default function BarcodePage() {
@@ -33,9 +30,15 @@ export default function BarcodePage() {
   const scannerState = useBarcodeScannerState();
   const detectionFeedback = useDetectionFeedback();
   const html5Scanner = useHtml5Scanner({
-    onDetection: (barcode) => {
-      scannerState.setBarcodeCode(barcode);
-      detectionFeedback.showDetectionFeedback();
+    onDetection: async (barcode) => {
+      // Auto-fetch item data when barcode is detected
+      try {
+        await scannerState.lookupItemByBarcodeAsync(barcode);
+        detectionFeedback.showDetectionFeedback();
+      } catch (err) {
+        console.error('Error processing auto-detected barcode:', err);
+        camera.setError('Failed to process barcode');
+      }
     },
     onScannerReady: () => {
       camera.setCameraActive(true);
@@ -118,6 +121,9 @@ export default function BarcodePage() {
             {scannerState.barcodeCode ? (
               <ResultsView
                 barcodeCode={scannerState.barcodeCode}
+                itemData={scannerState.itemData}
+                productData={scannerState.productData}
+                lookupError={scannerState.lookupError}
                 onScanAnother={handleRetry}
                 onBackToDashboard={() => router.push('/dashboard')}
               />

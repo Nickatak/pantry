@@ -27,34 +27,29 @@ export async function processBarcodeImage(
 }
 
 /**
- * TODO: FUTURE IMPLEMENTATION - UPC Database Lookup
+ * Lookup item details by UPC from the backend database
+ * Creates or retrieves item from database using UPC code
  *
- * Once implemented, this function will fetch product information from the UPC Database API.
- *
- * API: https://upcdatabase.org/api/json/{barcode}
- *
- * Example implementation:
- *
- * export async function lookupProductByUPC(barcode: string): Promise<UPCProduct> {
- *   try {
- *     const response = await fetch(`https://upcdatabase.org/api/json/${barcode}`);
- *     if (!response.ok) throw new Error(`UPC lookup failed: ${response.statusText}`);
- *     return response.json();
- *   } catch (error) {
- *     console.error('Error looking up UPC:', error);
- *     throw error;
- *   }
- * }
- *
- * interface UPCProduct {
- *   valid: boolean;
- *   number: string;
- *   quantity: string;
- *   description: string;
- *   brand: string;
- *   title: string;
- *   reviews: string;
- *   category: string;
- *   size: string;
- * }
+ * @param upc - UPC/barcode code to lookup
+ * @returns Item data from database including creation status
  */
+export async function lookupItemByUPC(
+  upc: string
+): Promise<{
+  created: boolean;
+  item: ItemData;
+  product_data: Record<string, unknown>;
+}> {
+  return apiCall(`/items/${upc}/`, {
+    method: 'GET',
+  });
+}
+
+export interface ItemData {
+  id: number;
+  barcode: string;
+  title: string;
+  description: string;
+  alias: string;
+  brand: number | null;
+}

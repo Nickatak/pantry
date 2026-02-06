@@ -56,7 +56,7 @@ class TestItemsUPCLookup:
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
     def test_lookup_upc_creates_new_item(
-        self, mock_upc_db_class, db_reset, http_client
+        self, mock_upc_db_class, db_reset, authenticated_client
     ):
         """Test successful UPC lookup creates a new item."""
         # Setup mock
@@ -67,7 +67,7 @@ class TestItemsUPCLookup:
         assert not Item.objects.filter(barcode=TEST_UPC).exists()
 
         # Make request
-        response = http_client.get(f"/api/items/{TEST_UPC}/")
+        response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
         # Verify response status
         assert response.status_code == 201
@@ -94,7 +94,7 @@ class TestItemsUPCLookup:
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
     def test_lookup_upc_returns_existing_item(
-        self, mock_upc_db_class, db_reset, http_client
+        self, mock_upc_db_class, db_reset, authenticated_client
     ):
         """Test UPC lookup returns existing item without creating duplicate."""
         # Setup mock
@@ -110,7 +110,7 @@ class TestItemsUPCLookup:
         )
 
         # Make request
-        response = http_client.get(f"/api/items/{TEST_UPC}/")
+        response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
         # Verify response status is 200 (not created)
         assert response.status_code == 200
@@ -133,7 +133,7 @@ class TestItemsUPCLookup:
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
     def test_lookup_upc_not_found_in_database(
-        self, mock_upc_db_class, db_reset, http_client
+        self, mock_upc_db_class, db_reset, authenticated_client
     ):
         """Test UPC lookup fails when product not found in UPC database."""
         # Setup mock to return None
@@ -141,7 +141,7 @@ class TestItemsUPCLookup:
         mock_db_instance.lookup.return_value = None
 
         # Make request
-        response = http_client.get(f"/api/items/{TEST_UPC}/")
+        response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
         # Verify response status
         assert response.status_code == 404
@@ -155,14 +155,16 @@ class TestItemsUPCLookup:
         assert not Item.objects.filter(barcode=TEST_UPC).exists()
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
-    def test_lookup_upc_api_error(self, mock_upc_db_class, db_reset, http_client):
+    def test_lookup_upc_api_error(
+        self, mock_upc_db_class, db_reset, authenticated_client
+    ):
         """Test UPC lookup handles API errors gracefully."""
         # Setup mock to raise exception
         mock_db_instance = mock_upc_db_class.return_value
         mock_db_instance.lookup.side_effect = Exception("API connection failed")
 
         # Make request
-        response = http_client.get(f"/api/items/{TEST_UPC}/")
+        response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
         # Verify response status
         assert response.status_code == 500
@@ -174,14 +176,16 @@ class TestItemsUPCLookup:
         assert "API connection failed" in data["error"]
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
-    def test_lookup_upc_missing_api_key(self, mock_upc_db_class, db_reset, http_client):
+    def test_lookup_upc_missing_api_key(
+        self, mock_upc_db_class, db_reset, authenticated_client
+    ):
         """Test UPC lookup fails when API key is not configured."""
         with patch("api.views.items.config") as mock_config:
             # Mock config to return empty API key
             mock_config.return_value = ""
 
             # Make request
-            response = http_client.get(f"/api/items/{TEST_UPC}/")
+            response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
             # Verify response status
             assert response.status_code == 500
@@ -193,7 +197,7 @@ class TestItemsUPCLookup:
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
     def test_lookup_upc_response_structure(
-        self, mock_upc_db_class, db_reset, http_client
+        self, mock_upc_db_class, db_reset, authenticated_client
     ):
         """Test UPC lookup response contains all required fields."""
         # Setup mock
@@ -201,7 +205,7 @@ class TestItemsUPCLookup:
         mock_db_instance.lookup.return_value = EXPECTED_UPC_RESPONSE
 
         # Make request
-        response = http_client.get(f"/api/items/{TEST_UPC}/")
+        response = authenticated_client.get(f"/api/items/{TEST_UPC}/")
 
         # Verify response structure
         assert response.status_code == 201

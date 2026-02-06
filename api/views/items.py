@@ -2,6 +2,7 @@ import upcdatabase
 from decouple import config
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import Brand, Item
@@ -15,8 +16,10 @@ class ItemViewSet(viewsets.ViewSet):
     Provides the following endpoints:
     - GET /api/items/{upc}/ - Lookup and create item from UPC
 
-    TODO: Re-implement IsAuthenticated permission classes
+    Requires authentication for all endpoints.
     """
+
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["get"], url_path="(?P<upc>[^/.]+)")
     def lookup_upc(self, request, upc=None):
