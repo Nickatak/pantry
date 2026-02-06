@@ -68,4 +68,3 @@ htmlcov/
 .env
 .env.dev
 .env.prod
-.env.*.local
