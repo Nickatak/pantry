@@ -7,6 +7,7 @@ PyJWT==2.10.1
 psycopg2-binary==2.9.9
 google-generativeai==0.8.3
 Pillow==11.0.0
+upcdatabase==0.1.2
 
 # Testing dependencies
 pytest==7.4.3

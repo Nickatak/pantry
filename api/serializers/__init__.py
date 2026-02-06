@@ -1,3 +1,4 @@
+from .item import ItemSerializer
 from .user import (
     CustomTokenObtainPairSerializer,
     UserRegistrationSerializer,
@@ -8,4 +9,5 @@ __all__ = [
     "UserSerializer",
     "UserRegistrationSerializer",
     "CustomTokenObtainPairSerializer",
+    "ItemSerializer",
 ]
