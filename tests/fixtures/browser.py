@@ -70,11 +70,31 @@ async def auth_storage_state(browser: Browser, db, test_dir, request) -> dict:
             f"localStorage.setItem('refreshToken', '{tokens['refresh']}')"
         )
 
-        # Verify tokens were set
+        # Verify tokens were set in localStorage
         stored_access = await page.evaluate("localStorage.getItem('accessToken')")
         assert (
             stored_access == tokens["access"]
         ), "Failed to set accessToken in localStorage"
+
+        # Also set tokens as cookies (middleware checks cookies)
+        await context.add_cookies(
+            [
+                {
+                    "name": "accessToken",
+                    "value": tokens["access"],
+                    "domain": "localhost",
+                    "path": "/",
+                    "max_age": 3600,
+                },
+                {
+                    "name": "refreshToken",
+                    "value": tokens["refresh"],
+                    "domain": "localhost",
+                    "path": "/",
+                    "max_age": 604800,
+                },
+            ]
+        )
 
         # Give storage time to persist
         await page.wait_for_timeout(200)
@@ -99,7 +119,7 @@ async def browser_context(browser: Browser, auth_storage_state) -> BrowserContex
 
 
 @pytest.fixture
-async def page(browser_context: BrowserContext):
+async def authenticated_page(browser_context: BrowserContext):
     """Provide a page instance for E2E tests with authenticated context."""
     page = await browser_context.new_page()
     yield page

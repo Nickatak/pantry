@@ -98,15 +98,21 @@ export async function updateProfile(email: string): Promise<User> {
 }
 
 /**
- * Store auth tokens in localStorage
- * Also enables offline-first approach and automatic token injection
+ * Store auth tokens in localStorage and cookies
+ * localStorage enables offline-first approach and automatic token injection
+ * cookies enable middleware to access tokens for auth redirects
  *
  * @param tokens - Auth tokens from login/register
  */
 export function setTokens(tokens: AuthTokens) {
   if (typeof window !== 'undefined') {
+    // Store in localStorage for client-side access
     localStorage.setItem('accessToken', tokens.access);
     localStorage.setItem('refreshToken', tokens.refresh);
+
+    // Store in cookies for middleware access (secure auth redirects)
+    document.cookie = `accessToken=${tokens.access}; path=/; max-age=3600`;
+    document.cookie = `refreshToken=${tokens.refresh}; path=/; max-age=604800`;
   }
 }
 
@@ -123,12 +129,17 @@ export function getAccessToken(): string | null {
 }
 
 /**
- * Clear all auth tokens from localStorage
+ * Clear all auth tokens from localStorage and cookies
  * Effectively logs the user out
  */
 export function clearTokens() {
   if (typeof window !== 'undefined') {
+    // Clear localStorage
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+
+    // Clear cookies (set with max-age=0 to delete)
+    document.cookie = 'accessToken=; path=/; max-age=0';
+    document.cookie = 'refreshToken=; path=/; max-age=0';
   }
 }

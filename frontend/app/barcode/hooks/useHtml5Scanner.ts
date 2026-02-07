@@ -43,14 +43,32 @@ export const useHtml5Scanner = ({
 
       console.log('Container found, initializing html5-qrcode scanner...');
 
+      // Get the actual aspect ratio from the camera
+      let aspectRatio = 1.77778; // Default fallback
+      try {
+
+        // Try to get aspect ratio from the actual video stream by checking container dimensions
+        // as a fallback, we'll let the video element determine it naturally
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+
+        if (containerWidth && containerHeight) {
+          aspectRatio = containerWidth / containerHeight;
+          console.log('Camera aspect ratio calculated:', aspectRatio);
+        }
+      } catch (e) {
+        console.log('Could not determine camera aspect ratio, using default:', e);
+      }
+
       const scanner = new Html5QrcodeScanner(
         'barcode-scanner-container',
         {
           fps: 30,
           qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.77778,
+          aspectRatio: aspectRatio,
           disableFlip: false,
           showTorchButtonIfSupported: true,
+          showZoomedQrImage: false,
         },
         false
       );
@@ -79,8 +97,17 @@ export const useHtml5Scanner = ({
         }
       );
 
-      console.log('✓ html5-qrcode scanner initialized successfully');
-      onScannerReady?.();
+      // Wait for the video element inside the container to actually start rendering
+      const checkVideoReady = () => {
+        const videoElement = document.querySelector('#barcode-scanner-container video');
+        if (videoElement && (videoElement as HTMLVideoElement).readyState >= 2) {
+          console.log('✓ html5-qrcode video stream ready');
+          onScannerReady?.();
+        } else {
+          setTimeout(checkVideoReady, 100);
+        }
+      };
+      checkVideoReady();
     } catch (err) {
       console.error('Failed to initialize html5-qrcode scanner:', err);
       throw err;

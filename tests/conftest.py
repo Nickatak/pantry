@@ -28,9 +28,9 @@ FRONTEND_HOST = os.getenv("FRONTEND_TEST_HOST", "http://localhost:3000")
 
 from .fixtures.browser import (  # noqa: E402, F401
     auth_storage_state,
+    authenticated_page,
     browser,
     browser_context,
-    page,
     unauthenticated_browser_context,
     unauthenticated_page,
 )

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCamera } from './hooks/useCamera';
 import { useDetectionFeedback } from './hooks/useDetectionFeedback';
@@ -10,6 +10,7 @@ import { useManualBarcodeCapture } from './hooks/useManualBarcodeCapture';
 import { ErrorDisplay } from './components/ErrorDisplay';
 import { CameraView } from './components/CameraView';
 import { ResultsView } from './components/ResultsView';
+import { html5QrcodeScannerStyles } from './styles';
 
 /**
  * BARCODE SCANNER PAGE
@@ -24,6 +25,8 @@ import { ResultsView } from './components/ResultsView';
 export default function BarcodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraInitializationRequested, setCameraInitializationRequested] =
+    useState(false);
 
   // Custom hooks for separation of concerns
   const camera = useCamera();
@@ -43,7 +46,7 @@ export default function BarcodePage() {
     onScannerReady: () => {
       camera.setCameraActive(true);
     },
-    detectionMethodActive: camera.detectionMethod === 'html5qrcode',
+    detectionMethodActive: camera.detectionMethod === 'html5qrcode' && cameraInitializationRequested,
   });
 
   const { captureFromBarcodeDetector, captureFromHtml5Scanner } =
@@ -63,8 +66,22 @@ export default function BarcodePage() {
       return;
     }
 
-    camera.initializeCamera();
+    // Inject styles to hide html5-qrcode dashboard
+    const styleTag = document.createElement('style');
+    styleTag.innerHTML = html5QrcodeScannerStyles;
+    document.head.appendChild(styleTag);
+
+    return () => {
+      document.head.removeChild(styleTag);
+    };
   }, [router]);
+
+  // Initialize camera only when user requests it
+  useEffect(() => {
+    if (cameraInitializationRequested) {
+      camera.initializeCamera();
+    }
+  }, [cameraInitializationRequested]);
 
   // Handle manual capture for BarcodeDetector mode
   const handleManualCapture = async () => {
@@ -132,6 +149,10 @@ export default function BarcodePage() {
                 <ErrorDisplay error={camera.error} />
 
                 <CameraView
+                  cameraInitializationRequested={cameraInitializationRequested}
+                  onRequestCameraInitialization={() =>
+                    setCameraInitializationRequested(true)
+                  }
                   detectionMethod={camera.detectionMethod}
                   cameraActive={camera.cameraActive}
                   videoRef={camera.videoRef}

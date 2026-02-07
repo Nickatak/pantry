@@ -56,7 +56,14 @@ export const useCamera = (
           // Use BarcodeDetector with the stream
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            setCameraActive(true);
+
+            // Wait for the video to actually have frames before marking as active
+            const handleCanPlay = () => {
+              setCameraActive(true);
+              videoRef.current?.removeEventListener('canplay', handleCanPlay);
+            };
+            videoRef.current.addEventListener('canplay', handleCanPlay);
+
             setDetectionMethod('barcodedetector');
             onDetectionMethodChange?.('barcodedetector');
           }
