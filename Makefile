@@ -1,4 +1,4 @@
-.PHONY: help install run-frontend run-backend dev venv kill test test-api test-e2e test-cov pre-commit-install dev-user dev-user-delete
+.PHONY: help install run-frontend run-backend dev venv kill test test-cov pre-commit-install dev-user dev-user-delete
 VENV_DIR := .venv
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
@@ -15,9 +15,9 @@ help:
 	@echo "  make kill              Stop servers on ports 3000 and 8000"
 	@echo ""
 	@echo "Testing commands:"
-	@echo "  make test              Run all tests"
-	@echo "  make test-api          Run API-level tests only"
-	@echo "  make test-e2e          Run browser-based E2E tests"
+	@echo "  make test              Run all tests in /tests/"
+	@echo "  make test <file_name>  Run tests only in /tests/<file_name>"
+	@echo "                         Example: make test test_barcode_e2e.py"
 	@echo "  make test-cov          Run tests with coverage report"
 	@echo ""
 	@echo "Dev user commands (DEV ONLY - do not use in production):"
@@ -68,18 +68,34 @@ kill:
 # Testing Commands
 # ============================================================================
 
-test:
-	@echo "Running all tests..."
-	$(PYTEST) tests/ -v
+# The 'test' target accepts optional filenames as arguments:
+#   make test              - Runs all tests in /tests/
+#   make test test_barcode_e2e.py - Runs only /tests/test_barcode_e2e.py
+#
+# How it works:
+# 1. $(filter-out test,$(MAKECMDGOALS)) extracts any args passed after 'test'
+#    - MAKECMDGOALS = all goals on the command line
+#    - filter-out = removes 'test' from the list, leaving only filenames
+# 2. $(eval TARGET := $(firstword ...)) stores the first filename in TARGET variable
+# 3. The shell if-statement checks if TARGET is empty:
+#    - [ -z "$(TARGET)" ] tests if the string is zero-length (empty)
+#    - If empty: run all tests
+#    - If not empty: run only the specified test file
+test: $(filter-out test,$(MAKECMDGOALS))
+	$(eval TARGET := $(firstword $(filter-out test,$(MAKECMDGOALS))))
+	@if [ -z "$(TARGET)" ]; then \
+		echo "Running all tests in /tests/..."; \
+		$(PYTEST) tests/ -v; \
+	else \
+		echo "Running tests in tests/$(TARGET)..."; \
+		$(PYTEST) tests/$(TARGET) -v; \
+	fi
 
-test-api:
-	@echo "Running API tests only..."
-	$(PYTEST) tests/test_auth_api.py -v
-
-test-e2e:
-	@echo "Running E2E tests only..."
-	@echo "Note: Ensure frontend and backend are running on localhost:3000 and localhost:8000"
-	$(PYTEST) tests/test_auth_e2e.py -v
+# Create dummy targets for any non-test arguments passed to make.
+# Without this, Make would error: "No rule to make target 'filename.py'"
+# The @: is a no-op command (@ suppresses output, : does nothing)
+$(filter-out test,$(MAKECMDGOALS)):
+	@:
 
 test-cov:
 	@echo "Running tests with coverage report..."

@@ -6,6 +6,8 @@ import React, { useRef } from 'react';
 import { DetectionMethod } from '../hooks/useCamera';
 
 interface CameraViewProps {
+  cameraInitializationRequested: boolean;
+  onRequestCameraInitialization: () => void;
   detectionMethod: DetectionMethod;
   cameraActive: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -17,6 +19,8 @@ interface CameraViewProps {
 }
 
 export const CameraView = ({
+  cameraInitializationRequested,
+  onRequestCameraInitialization,
   detectionMethod,
   cameraActive,
   videoRef,
@@ -28,15 +32,51 @@ export const CameraView = ({
 }: CameraViewProps) => {
   const canvasOverlayRef = useRef<HTMLCanvasElement>(null);
 
+  // Show initialization prompt if camera hasn't been requested yet
+  if (!cameraInitializationRequested) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <h2 className="text-lg font-semibold text-blue-900 mb-2">Ready to Scan?</h2>
+          <p className="text-blue-700 mb-4">
+            Click below to enable your camera and start scanning barcodes
+          </p>
+          <button
+            onClick={onRequestCameraInitialization}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition"
+          >
+            Enable Camera
+          </button>
+        </div>
+        <button
+          onClick={onCancel}
+          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  // Show camera feed once initialized
   return (
     <div className="space-y-4">
       {detectionMethod === 'html5qrcode' ? (
         // html5-qrcode scanner container
-        <div
-          id="barcode-scanner-container"
-          className="rounded-lg overflow-hidden bg-black w-full"
-          style={{ minHeight: '400px' }}
-        />
+        <div className="relative rounded-lg overflow-hidden bg-black w-full" style={{ minHeight: '400px' }}>
+          <div
+            id="barcode-scanner-container"
+            className="w-full h-full"
+          />
+          {!cameraActive && cameraInitializationRequested && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white mb-4"></div>
+                <p className="text-white font-medium">Initializing camera...</p>
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         // Video element for BarcodeDetector
         <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
@@ -50,15 +90,16 @@ export const CameraView = ({
             ref={canvasOverlayRef}
             className="absolute inset-0 w-full h-full hidden"
           />
-          {!cameraActive && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <p className="text-white text-center">
-                Requesting camera access...
-              </p>
+          {!cameraActive && cameraInitializationRequested && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-600 border-t-white mb-4"></div>
+                <p className="text-white font-medium">Initializing camera...</p>
+              </div>
             </div>
           )}
           {cameraActive && (
-            <div className="absolute inset-0 border-4 opacity-50 border-green-400"></div>
+            <div className="absolute inset-0 border-4 border-green-400 opacity-50"></div>
           )}
           {barcodeDetected && (
             <div className="absolute inset-0 bg-green-500 opacity-10"></div>
@@ -90,22 +131,6 @@ export const CameraView = ({
           Cancel
         </button>
       </div>
-
-      {cameraActive && (
-        <p className="text-sm text-gray-600 text-center">
-          {detectionMethod === 'html5qrcode' ? (
-            <span className="text-blue-600 font-semibold">
-              ✓ Real-time barcode detection active (html5-qrcode)
-            </span>
-          ) : detectionMethod === 'barcodedetector' ? (
-            <span className="text-blue-600 font-semibold">
-              ✓ Real-time barcode detection active (Native API)
-            </span>
-          ) : (
-            'Initializing barcode detection...'
-          )}
-        </p>
-      )}
     </div>
   );
 };
