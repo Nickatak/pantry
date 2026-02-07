@@ -2,8 +2,9 @@
  * Camera view component - displays camera feed and controls
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { DetectionMethod } from '../hooks/useCamera';
+import { ProcessingOverlay } from './ProcessingOverlay';
 
 interface CameraViewProps {
   cameraInitializationRequested: boolean;
@@ -31,6 +32,22 @@ export const CameraView = ({
   onCancel,
 }: CameraViewProps) => {
   const canvasOverlayRef = useRef<HTMLCanvasElement>(null);
+  const [showFlash, setShowFlash] = useState(false);
+
+  // Trigger flash effect when capture starts
+  useEffect(() => {
+    if (processing && !showFlash) {
+      setShowFlash(true);
+    }
+  }, [processing, showFlash]);
+
+  // Stop flash after animation completes
+  useEffect(() => {
+    if (showFlash) {
+      const timer = setTimeout(() => setShowFlash(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [showFlash]);
 
   // Show initialization prompt if camera hasn't been requested yet
   if (!cameraInitializationRequested) {
@@ -60,7 +77,7 @@ export const CameraView = ({
 
   // Show camera feed once initialized
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
       {detectionMethod === 'html5qrcode' ? (
         // html5-qrcode scanner container
         <div className="relative rounded-lg overflow-hidden bg-black w-full" style={{ minHeight: '400px' }}>
@@ -76,6 +93,10 @@ export const CameraView = ({
               </div>
             </div>
           )}
+          {showFlash && (
+            <div className="absolute inset-0 bg-white opacity-40 z-20" style={{ animation: 'fadeOut 0.3s ease-out forwards' }}></div>
+          )}
+          {processing && <ProcessingOverlay isVisible={true} />}
         </div>
       ) : (
         // Video element for BarcodeDetector
@@ -104,6 +125,10 @@ export const CameraView = ({
           {barcodeDetected && (
             <div className="absolute inset-0 bg-green-500 opacity-10"></div>
           )}
+          {showFlash && (
+            <div className="absolute inset-0 bg-white opacity-40 z-20" style={{ animation: 'fadeOut 0.3s ease-out forwards' }}></div>
+          )}
+          {processing && <ProcessingOverlay isVisible={true} />}
         </div>
       )}
 
@@ -121,7 +146,7 @@ export const CameraView = ({
           disabled={!cameraActive || loading || processing}
           className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition"
         >
-          {loading || processing ? 'Processing...' : 'Capture'}
+          {loading || processing ? 'Capturing...' : 'Capture'}
         </button>
 
         <button
