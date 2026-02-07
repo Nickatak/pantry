@@ -12,6 +12,18 @@ import { CameraView } from './components/CameraView';
 import { ResultsView } from './components/ResultsView';
 import { html5QrcodeScannerStyles } from './styles';
 
+// Add fade-out animation for flash effect
+const flashAnimationStyle = `
+  @keyframes fadeOut {
+    from {
+      opacity: 0.4;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+`;
+
 /**
  * BARCODE SCANNER PAGE
  *
@@ -66,9 +78,9 @@ export default function BarcodePage() {
       return;
     }
 
-    // Inject styles to hide html5-qrcode dashboard
+    // Inject styles to hide html5-qrcode dashboard and flash animation
     const styleTag = document.createElement('style');
-    styleTag.innerHTML = html5QrcodeScannerStyles;
+    styleTag.innerHTML = html5QrcodeScannerStyles + flashAnimationStyle;
     document.head.appendChild(styleTag);
 
     return () => {
