@@ -3,11 +3,12 @@
  *
  * Two-step item creation workflow:
  * 1. Scan barcode → processBarcodeImage() → extract UPC code
- * 2. Lookup product → lookupProductByUPC() → get external product data (may fail)
+ * 2. Lookup product → lookupProductByUPC() → get external product data (may not be found)
  * 3. Create item → createItem() → save to database with user-provided data
  */
 
-import { apiCall } from './core';
+import { apiCall, API_BASE_URL } from './core';
+import { getAccessToken } from './auth';
 
 export interface ProcessBarcodeResult {
   detected: boolean;
@@ -55,19 +56,37 @@ export async function lookupItemByUPC(
  *
  * FLOW:
  * 1. Query external UPC database (upcdatabase.com)
- * 2. If found: return product data with title, description, brand, etc.
- * 3. If not found: throw error, allows user to manually add new UPC
+ * 2. If found: return {found: true, product_data: {...}}
+ * 3. If not found: return {found: false, product_data: null}
  *
  * @param upc - UPC/barcode code to lookup
- * @returns Product data from external database
- * @throws Error if product not found in external database
+ * @returns Product lookup result with found flag
+ * @throws Error if backend is unavailable or API error occurs
  */
 export async function lookupProductByUPC(
   upc: string
-): Promise<{ product_data: Record<string, unknown> }> {
-  return apiCall(`/items/lookup-product/${upc}/`, {
-    method: 'GET',
-  });
+): Promise<{ found: boolean; product_data: Record<string, unknown> | null }> {
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/items/lookup-product/${upc}/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken() || ''}`,
+      },
+    });
+  } catch {
+    // Network error (backend down)
+    throw new Error('Backend server is down. Please try again later.');
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to lookup product');
+  }
+
+  return response.json();
 }
 
 /**
@@ -84,10 +103,34 @@ export async function createItem(itemData: {
   description: string;
   alias: string;
 }): Promise<ItemData> {
-  return apiCall('/items/create-from-upc/', {
-    method: 'POST',
-    body: JSON.stringify(itemData),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/items/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken() || ''}`,
+      },
+      body: JSON.stringify(itemData),
+    });
+  } catch {
+    // Network error (backend down)
+    throw new Error('Backend server is down. Please try again later.');
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    if (error.barcode) {
+      throw new Error(error.barcode);
+    }
+    if (error.title) {
+      throw new Error(error.title);
+    }
+    throw new Error(error.error || 'Failed to create item');
+  }
+
+  return response.json();
 }
 
 export interface ItemData {

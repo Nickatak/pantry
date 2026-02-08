@@ -1,4 +1,4 @@
-.PHONY: help install run-frontend run-backend dev venv kill test test-cov \
+.PHONY: help install run-frontend run-backend dev venv kill test test-e2e test-cov \
 	pre-commit-install dev-user dev-user-delete
 
 VENV_DIR := .venv
@@ -20,6 +20,7 @@ help:
 	@echo "  make test              Run all tests in /tests/"
 	@echo "  make test <file_name>  Run tests only in /tests/<file_name>"
 	@echo "                         Example: make test test_barcode_e2e.py"
+	@echo "  make test-e2e          Run E2E tests (requires servers running)"
 	@echo "  make test-cov          Run tests with coverage report"
 	@echo ""
 	@echo "Dev user commands (DEV ONLY - do not use in production):"
@@ -99,6 +100,18 @@ test: $(filter-out test,$(MAKECMDGOALS))
 # Only match .py filenames to avoid conflicts with real targets
 %.py:
 	@:
+
+test-e2e:
+	@echo "Running E2E tests (requires servers running on ports 8000 and 3000)..."
+	@if ! lsof -ti:8000 > /dev/null 2>&1 || ! lsof -ti:3000 > /dev/null 2>&1; then \
+		echo "⚠️  E2E tests require backend and frontend servers to be running:"; \
+		echo "   Backend: http://localhost:8000"; \
+		echo "   Frontend: http://localhost:3000"; \
+		echo ""; \
+		echo "Start them with: make dev"; \
+		exit 0; \
+	fi
+	$(PYTEST) tests/ -v -m e2e
 
 test-cov:
 	@echo "Running tests with coverage report..."

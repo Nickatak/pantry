@@ -17,7 +17,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         required=True,
         error_messages={
             "invalid": "Please enter a valid email address.",
-            "required": "Email is required.",
+            "required": "Please enter a valid email address.",
         },
     )
     password = serializers.CharField(
@@ -25,16 +25,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         min_length=8,
         error_messages={
             "min_length": "Password must be at least 8 characters long.",
-            "required": "Password is required.",
-            "blank": "Password cannot be blank.",
         },
     )
     password_confirm = serializers.CharField(
         write_only=True,
-        error_messages={
-            "required": "Password confirmation is required.",
-            "blank": "Password confirmation cannot be blank.",
-        },
     )
 
     class Meta:

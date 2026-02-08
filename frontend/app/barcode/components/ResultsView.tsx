@@ -56,30 +56,34 @@ export const ResultsView = ({
     try {
       // Attempt to fetch product data from external UPC database
       const result = await lookupProductByUPC(upc);
-      setProductData(result.product_data);
 
-      // Successfully found - pre-fill form with external data
-      setItemData({
-        barcode: upc,
-        title: (result.product_data.title as string) || '',
-        description: (result.product_data.description as string) || '',
-        alias: '',
-      });
+      if (result.found && result.product_data) {
+        // Successfully found - pre-fill form with external data
+        setProductData(result.product_data);
+        setItemData({
+          barcode: upc,
+          title: (result.product_data.title as string) || '',
+          description: (result.product_data.description as string) || '',
+          alias: '',
+        });
+        setProductFound(true);
+      } else {
+        // Product not found in external database - allow user to manually enter data
+        setProductData(null);
+        setItemData({
+          barcode: upc,
+          title: '',
+          description: '',
+          alias: '',
+        });
+        setProductFound(false);
+      }
 
-      setProductFound(true);
       setStep('edit-item');
-    } catch {
-      // Product not found in external database - allow user to manually enter data
-      // Initialize form with just the barcode, all other fields empty
-      setProductData(null);
-      setItemData({
-        barcode: upc,
-        title: '',
-        description: '',
-        alias: '',
-      });
-      setProductFound(false);
-      setStep('edit-item');
+    } catch (err) {
+      // Backend error or network error
+      const errorMessage = err instanceof Error ? err.message : 'Failed to lookup product';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

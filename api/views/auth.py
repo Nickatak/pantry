@@ -89,11 +89,6 @@ class AuthViewSet(viewsets.ViewSet):
         - password: str
         - password_confirm: str
         """
-        if User.objects.filter(email=request.data.get("email")).exists():
-            return Response(
-                {"email": "Email already exists."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
