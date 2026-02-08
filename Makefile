@@ -1,4 +1,6 @@
-.PHONY: help install run-frontend run-backend dev venv kill test test-cov pre-commit-install dev-user dev-user-delete
+.PHONY: help install run-frontend run-backend dev venv kill test test-cov \
+	pre-commit-install dev-user dev-user-delete
+
 VENV_DIR := .venv
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
@@ -94,7 +96,8 @@ test: $(filter-out test,$(MAKECMDGOALS))
 # Create dummy targets for any non-test arguments passed to make.
 # Without this, Make would error: "No rule to make target 'filename.py'"
 # The @: is a no-op command (@ suppresses output, : does nothing)
-$(filter-out test,$(MAKECMDGOALS)):
+# Only match .py filenames to avoid conflicts with real targets
+%.py:
 	@:
 
 test-cov:

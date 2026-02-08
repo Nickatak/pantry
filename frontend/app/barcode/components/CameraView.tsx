@@ -140,22 +140,13 @@ export const CameraView = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          onClick={onManualCapture}
-          disabled={!cameraActive || loading || processing}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition"
-        >
-          {loading || processing ? 'Capturing...' : 'Capture'}
-        </button>
-
-        <button
-          onClick={onCancel}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition"
-        >
-          Cancel
-        </button>
-      </div>
+      <button
+        onClick={onManualCapture}
+        disabled={!cameraActive || loading || processing}
+        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition"
+      >
+        {loading || processing ? 'Capturing...' : 'Capture'}
+      </button>
     </div>
   );
 };

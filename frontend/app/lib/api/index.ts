@@ -23,6 +23,8 @@ export {
 export {
   processBarcodeImage,
   lookupItemByUPC,
+  lookupProductByUPC,
+  createItem,
   type ProcessBarcodeResult,
   type ItemData,
 } from './barcode';
