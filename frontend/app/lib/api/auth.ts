@@ -16,6 +16,34 @@ export interface User {
 }
 
 /**
+ * Format validation error responses from Django REST Framework
+ * Converts nested field errors into readable messages
+ *
+ * @param error - Validation error object
+ * @returns Formatted error message
+ */
+function formatValidationError(error: Record<string, unknown>): string {
+  // Check if this is a validation error object (has field-specific errors)
+  const fieldErrors: string[] = [];
+
+  for (const [field, messages] of Object.entries(error)) {
+    if (Array.isArray(messages) && messages.length > 0) {
+      const firstMessage = messages[0];
+      const fieldName = field.replace(/_/g, ' ');
+      const capitalizedField = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+      fieldErrors.push(`${capitalizedField}: ${firstMessage}`);
+    }
+  }
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors.join(' ');
+  }
+
+  // Fallback if no field errors found
+  return 'Validation failed. Please check your inputs.';
+}
+
+/**
  * Register a new user account
  *
  * @param email - User email address
@@ -28,21 +56,31 @@ export async function register(
   password: string,
   passwordConfirm: string
 ): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/auth/register/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      password,
-      password_confirm: passwordConfirm,
-    }),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/register/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        password_confirm: passwordConfirm,
+      }),
+    });
+  } catch {
+    // Network error (aborted request, no connection, etc)
+    throw new Error('Backend server is down. Please try again later.');
+  }
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || JSON.stringify(error));
+    if (error.detail) {
+      throw new Error(error.detail);
+    }
+    throw new Error(formatValidationError(error));
   }
 
   return response.json();
@@ -56,20 +94,30 @@ export async function register(
  * @returns Auth tokens (access and refresh)
  */
 export async function login(email: string, password: string): Promise<AuthTokens> {
-  const response = await fetch(`${API_BASE_URL}/auth/login/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      email,
-      password,
-    }),
-  });
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/login/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+  } catch {
+    // Network error (aborted request, no connection, etc)
+    throw new Error('Backend server is down. Please try again later.');
+  }
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || JSON.stringify(error));
+    if (error.detail) {
+      throw new Error(error.detail);
+    }
+    throw new Error(formatValidationError(error));
   }
 
   return response.json();

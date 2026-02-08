@@ -23,9 +23,15 @@ export default function RegisterPage() {
       await register(email, password, passwordConfirm);
 
       // Automatically log in after successful registration
-      const tokens = await login(email, password);
-      setTokens(tokens);
-      router.push('/dashboard');
+      try {
+        const tokens = await login(email, password);
+        setTokens(tokens);
+        router.push('/dashboard');
+      } catch (loginErr) {
+        // Registration succeeded but login failed - this shouldn't happen
+        const errorMsg = loginErr instanceof Error ? loginErr.message : 'Login failed';
+        throw new Error(`Registration succeeded but login failed - contact website owner please. (${errorMsg})`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
