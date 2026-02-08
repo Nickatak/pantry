@@ -30,8 +30,9 @@ const flashAnimationStyle = `
  * FLOW:
  * 1. User captures image with camera
  * 2. Image sent to /api/barcode/process/ - extracts barcode/UPC
- * 3. UPC sent to /api/items/{UPC} - retrieves product information
- * 4. Product details displayed in ResultsView
+ * 3. ResultsView shows extracted barcode for confirmation/editing
+ * 4. User confirms barcode and fetches product data
+ * 5. User edits item details and saves to database
  */
 
 export default function BarcodePage() {
@@ -45,15 +46,10 @@ export default function BarcodePage() {
   const scannerState = useBarcodeScannerState();
   const detectionFeedback = useDetectionFeedback();
   const html5Scanner = useHtml5Scanner({
-    onDetection: async (barcode) => {
-      // Auto-fetch item data when barcode is detected
-      try {
-        await scannerState.lookupItemByBarcodeAsync(barcode);
-        detectionFeedback.showDetectionFeedback();
-      } catch (err) {
-        console.error('Error processing auto-detected barcode:', err);
-        camera.setError('Failed to process barcode');
-      }
+    onDetection: (barcode) => {
+      // Just set the barcode code, don't fetch item data
+      scannerState.setBarcodeCode(barcode);
+      detectionFeedback.showDetectionFeedback();
     },
     onScannerReady: () => {
       camera.setCameraActive(true);
@@ -63,7 +59,10 @@ export default function BarcodePage() {
 
   const { captureFromBarcodeDetector, captureFromHtml5Scanner } =
     useManualBarcodeCapture({
-      onProcessBarcodeAsync: scannerState.processDetectedBarcodeAsync,
+      onProcessBarcodeAsync: async (videoElement: HTMLVideoElement, canvasElement: HTMLCanvasElement) => {
+        // Just extract barcode, don't fetch item data
+        return await scannerState.processDetectedBarcodeOnlyAsync(videoElement, canvasElement);
+      },
       onSetProcessing: scannerState.setProcessing,
       onSetError: camera.setError,
       onShowFeedback: detectionFeedback.showDetectionFeedback,
@@ -146,42 +145,37 @@ export default function BarcodePage() {
             </p>
           </div>
 
-          <div className="p-6">
-            {scannerState.barcodeCode ? (
+          <div className="p-6 space-y-6">
+            <ErrorDisplay error={camera.error} />
+
+            <CameraView
+              cameraInitializationRequested={cameraInitializationRequested}
+              onRequestCameraInitialization={() =>
+                setCameraInitializationRequested(true)
+              }
+              detectionMethod={camera.detectionMethod}
+              cameraActive={camera.cameraActive}
+              videoRef={camera.videoRef}
+              barcodeDetected={detectionFeedback.barcodeDetected}
+              loading={scannerState.loading}
+              processing={scannerState.processing}
+              onManualCapture={
+                camera.detectionMethod === 'html5qrcode'
+                  ? handleManualCaptureHtml5
+                  : handleManualCapture
+              }
+              onCancel={() => router.push('/dashboard')}
+            />
+
+            {scannerState.barcodeCode && (
               <ResultsView
                 barcodeCode={scannerState.barcodeCode}
-                itemData={scannerState.itemData}
-                productData={scannerState.productData}
-                lookupError={scannerState.lookupError}
                 onScanAnother={handleRetry}
                 onBackToDashboard={() => router.push('/dashboard')}
               />
-            ) : (
-              <>
-                <ErrorDisplay error={camera.error} />
-
-                <CameraView
-                  cameraInitializationRequested={cameraInitializationRequested}
-                  onRequestCameraInitialization={() =>
-                    setCameraInitializationRequested(true)
-                  }
-                  detectionMethod={camera.detectionMethod}
-                  cameraActive={camera.cameraActive}
-                  videoRef={camera.videoRef}
-                  barcodeDetected={detectionFeedback.barcodeDetected}
-                  loading={scannerState.loading}
-                  processing={scannerState.processing}
-                  onManualCapture={
-                    camera.detectionMethod === 'html5qrcode'
-                      ? handleManualCaptureHtml5
-                      : handleManualCapture
-                  }
-                  onCancel={() => router.push('/dashboard')}
-                />
-
-                <canvas ref={canvasRef} className="hidden" />
-              </>
             )}
+
+            <canvas ref={canvasRef} className="hidden" />
           </div>
         </div>
       </div>
