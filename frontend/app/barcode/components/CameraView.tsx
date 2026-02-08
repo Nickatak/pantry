@@ -16,7 +16,6 @@ interface CameraViewProps {
   loading: boolean;
   processing: boolean;
   onManualCapture: () => void;
-  onCancel: () => void;
 }
 
 export const CameraView = ({
@@ -29,7 +28,6 @@ export const CameraView = ({
   loading,
   processing,
   onManualCapture,
-  onCancel,
 }: CameraViewProps) => {
   const canvasOverlayRef = useRef<HTMLCanvasElement>(null);
   const [showFlash, setShowFlash] = useState(false);
@@ -65,12 +63,6 @@ export const CameraView = ({
             Enable Camera
           </button>
         </div>
-        <button
-          onClick={onCancel}
-          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition"
-        >
-          Cancel
-        </button>
       </div>
     );
   }

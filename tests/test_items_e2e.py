@@ -124,9 +124,9 @@ class TestItemsUPCLookup:
         # Verify only one item exists in database
         assert Item.objects.filter(barcode=TEST_UPC).count() == 1
 
-    def test_lookup_upc_without_upc_param(self, db_reset, http_client):
+    def test_lookup_upc_without_upc_param(self, db_reset, authenticated_client):
         """Test UPC lookup fails when UPC is not provided."""
-        response = http_client.get("/api/items/")
+        response = authenticated_client.get("/api/items/")
 
         # Should get 404 because of router pattern
         assert response.status_code == 404

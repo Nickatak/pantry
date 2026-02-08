@@ -86,49 +86,75 @@ class ItemViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="lookup-product/(?P<upc>[^/.]+)")
     def lookup_product(self, request, upc=None):
         """
-        Lookup product data from external UPC database.
+        Lookup product data by checking database first, then external UPC database.
         Does NOT create an item - just returns product information.
 
         GET /api/items/lookup-product/{upc}/
 
-        Returns: { found: bool, product_data: {...} }
+        Returns: { found: bool, from_database: bool, product_data: {...} }
         """
         if not upc:
             return Response(
                 {"error": "UPC code is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        # First, check if item exists in database
         try:
-            # Get API key from environment
-            api_key = config("UPCDATABASE_API_KEY", default="")
-            if not api_key:
-                return Response(
-                    {"error": "UPCDATABASE_API_KEY environment variable not set"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+            item = Item.objects.get(barcode=upc)
+            # Item found in database - return existing data
+            return Response(
+                {
+                    "found": True,
+                    "from_database": True,
+                    "product_data": {
+                        "title": item.title,
+                        "description": item.description,
+                        "alias": item.alias,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Item.DoesNotExist:
+            # Item not in database, proceed to external API lookup
+            try:
+                # Get API key from environment
+                api_key = config("UPCDATABASE_API_KEY", default="")
+                if not api_key:
+                    return Response(
+                        {"error": "UPCDATABASE_API_KEY environment variable not set"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
 
-            # Create UPCDatabase instance and lookup the UPC
-            db = upcdatabase.UPCDatabase(api_key)
-            product = db.lookup(upc)
+                # Create UPCDatabase instance and lookup the UPC
+                db = upcdatabase.UPCDatabase(api_key)
+                product = db.lookup(upc)
 
-            if not product:
-                # Product not found is not an error - return success with found=false
+                if not product:
+                    # Product not found is not an error - return success with found=false
+                    return Response(
+                        {
+                            "found": False,
+                            "from_database": False,
+                            "product_data": None,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+
                 return Response(
-                    {"found": False, "product_data": None},
+                    {
+                        "found": True,
+                        "from_database": False,
+                        "product_data": product,
+                    },
                     status=status.HTTP_200_OK,
                 )
 
-            return Response(
-                {"found": True, "product_data": product},
-                status=status.HTTP_200_OK,
-            )
-
-        except Exception as e:
-            # External API error - return 500
-            return Response(
-                {"error": f"Failed to lookup product: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            except Exception as e:
+                # External API error - return 500
+                return Response(
+                    {"error": f"Failed to lookup product: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
     @action(detail=False, methods=["get"], url_path="(?P<upc>[^/.]+)")
     def lookup_upc(self, request, upc=None):

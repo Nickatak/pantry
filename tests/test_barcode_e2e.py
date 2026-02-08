@@ -99,10 +99,9 @@ class TestBarcodePageUI:
         assert len(buttons) > 0
         button_texts = [await btn.text_content() for btn in buttons]
 
-        # Should have Enable Camera or Capture buttons, and Cancel
+        # Should have Enable Camera or Capture buttons, and Confirm
         button_names = " ".join(button_texts)
-        assert "Cancel" in button_names
-        assert "Enable Camera" in button_names or "Capture" in button_names
+        assert "Enable Camera" in button_names or "Confirm" in button_names
 
     @pytest.mark.asyncio
     async def test_barcode_page_has_navigation_buttons(self, authenticated_page, db):
@@ -112,9 +111,9 @@ class TestBarcodePageUI:
             "http://localhost:3000/barcode", wait_until="networkidle"
         )
 
-        # Check for buttons - should have at least Enable Camera and Cancel
+        # Check for buttons - should have at least Enable Camera and Confirm
         buttons = await authenticated_page.query_selector_all("button")
-        # At least Enable Camera and Cancel buttons initially
+        # At least Enable Camera and Confirm buttons initially
         assert len(buttons) >= 2
 
         # Check button text contains expected actions
@@ -123,10 +122,12 @@ class TestBarcodePageUI:
             text = await btn.text_content()
             button_texts.append(text)
 
-        assert any("Cancel" in text for text in button_texts)
         # Should have either "Enable Camera" initially or "Capture" after enabling
         assert any(
-            "Enable Camera" in text or "Capture" in text or "Processing" in text
+            "Enable Camera" in text
+            or "Capture" in text
+            or "Processing" in text
+            or "Confirm" in text
             for text in button_texts
         )
 
