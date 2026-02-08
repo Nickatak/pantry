@@ -164,16 +164,12 @@ export default function BarcodePage() {
                   ? handleManualCaptureHtml5
                   : handleManualCapture
               }
-              onCancel={() => router.push('/dashboard')}
             />
 
-            {scannerState.barcodeCode && (
-              <ResultsView
-                barcodeCode={scannerState.barcodeCode}
-                onScanAnother={handleRetry}
-                onBackToDashboard={() => router.push('/dashboard')}
-              />
-            )}
+            <ResultsView
+              barcodeCode={scannerState.barcodeCode || ''}
+              onScanAnother={handleRetry}
+            />
 
             <canvas ref={canvasRef} className="hidden" />
           </div>
