@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 
-from api.models import Item
+from api.models import Item, Location, UserItemQuantity
 
 User = get_user_model()
 
@@ -125,11 +125,13 @@ class TestItemsUPCLookup:
         assert Item.objects.filter(barcode=TEST_UPC).count() == 1
 
     def test_lookup_upc_without_upc_param(self, db_reset, authenticated_client):
-        """Test UPC lookup fails when UPC is not provided."""
+        """Test item list endpoint responds when UPC is not provided."""
         response = authenticated_client.get("/api/items/")
 
-        # Should get 404 because of router pattern
-        assert response.status_code == 404
+        assert response.status_code == 200
+        data = response.json()
+        assert "count" in data
+        assert "results" in data
 
     @patch("api.views.items.upcdatabase.UPCDatabase")
     def test_lookup_upc_not_found_in_database(
@@ -229,3 +231,144 @@ class TestItemsUPCLookup:
         assert product_data["barcode"] == TEST_UPC
         assert product_data["title"] == EXPECTED_UPC_RESPONSE["title"]
         assert product_data["success"] is True
+
+
+@pytest.mark.items
+class TestUserItemQuantity:
+    """Tests for user-owned item quantities."""
+
+    def test_add_to_user_creates_and_increments(
+        self, db_reset, authenticated_client, test_user
+    ):
+        item = Item.objects.create(
+            barcode="9990001112223",
+            title="Sparkling Water",
+            description="Lime",
+            alias="Water",
+        )
+
+        response = authenticated_client.post(
+            f"/api/items/{item.id}/add-to-user/", json={}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == item.id
+        assert data["quantity"] == 1
+
+        response = authenticated_client.post(
+            f"/api/items/{item.id}/add-to-user/", json={}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["quantity"] == 2
+
+        pantry = Location.objects.get(user=test_user, name="Pantry")
+        user_item = UserItemQuantity.objects.get(
+            user=test_user, item=item, location=pantry
+        )
+        assert user_item.quantity == 2
+
+    def test_list_only_returns_user_items(
+        self, db_reset, authenticated_client, test_user
+    ):
+        other_user = User.objects.create_user(
+            email="other@example.com", password="testpassword123"
+        )
+        item_owned = Item.objects.create(
+            barcode="1112223334445",
+            title="Granola Bar",
+            description="Oats",
+            alias="Snack",
+        )
+        item_other = Item.objects.create(
+            barcode="5556667778889",
+            title="Dish Soap",
+            description="Lemon",
+            alias="Soap",
+        )
+        pantry = Location.objects.get(user=test_user, name="Pantry")
+        other_pantry = Location.objects.get(user=other_user, name="Pantry")
+        UserItemQuantity.objects.create(
+            user=test_user, item=item_owned, location=pantry, quantity=1
+        )
+        UserItemQuantity.objects.create(
+            user=other_user, item=item_other, location=other_pantry, quantity=3
+        )
+
+        response = authenticated_client.get("/api/items/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 1
+        assert data["results"][0]["id"] == item_owned.id
+
+    def test_update_quantity_endpoint(self, db_reset, authenticated_client, test_user):
+        item = Item.objects.create(
+            barcode="0001112223334",
+            title="Almond Milk",
+            description="Unsweetened",
+            alias="Milk",
+        )
+        pantry = Location.objects.get(user=test_user, name="Pantry")
+        UserItemQuantity.objects.create(
+            user=test_user, item=item, location=pantry, quantity=1
+        )
+
+        response = authenticated_client.patch(
+            f"/api/items/{item.id}/quantity/", json={"quantity": 5}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["quantity"] == 5
+
+        response = authenticated_client.patch(
+            f"/api/items/{item.id}/quantity/", json={"quantity": 0}
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.items
+class TestUserItemQuantityLocationsE2E:
+    def test_add_to_user_with_location_id(
+        self, db_reset, authenticated_client, test_user
+    ):
+        item = Item.objects.create(
+            barcode="3131313131313",
+            title="Olive Oil",
+            description="Extra virgin",
+            alias="Oil",
+        )
+        freezer = Location.objects.get(user=test_user, name="Freezer")
+
+        response = authenticated_client.post(
+            f"/api/items/{item.id}/add-to-user/", json={"location_id": freezer.id}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["quantity"] == 1
+
+        user_item = UserItemQuantity.objects.get(
+            user=test_user, item=item, location=freezer
+        )
+        assert user_item.quantity == 1
+
+    def test_update_quantity_with_location_id(
+        self, db_reset, authenticated_client, test_user
+    ):
+        item = Item.objects.create(
+            barcode="4242424242424",
+            title="Frozen Peas",
+            description="Green",
+            alias="Peas",
+        )
+        freezer = Location.objects.get(user=test_user, name="Freezer")
+        UserItemQuantity.objects.create(
+            user=test_user, item=item, location=freezer, quantity=2
+        )
+
+        response = authenticated_client.patch(
+            f"/api/items/{item.id}/quantity/",
+            json={"quantity": 7, "location_id": freezer.id},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["quantity"] == 7

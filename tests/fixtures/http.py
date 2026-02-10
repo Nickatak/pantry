@@ -38,6 +38,8 @@ class APITestClient:
             response = self.client.post(path, **request_kwargs)
         elif method.lower() == "put":
             response = self.client.put(path, **request_kwargs)
+        elif method.lower() == "patch":
+            response = self.client.patch(path, **request_kwargs)
         else:
             raise ValueError(f"Unsupported method: {method}")
 
@@ -52,6 +54,9 @@ class APITestClient:
 
     def put(self, path: str, json=None, **kwargs):
         return self._make_request("PUT", path, json_data=json, **kwargs)
+
+    def patch(self, path: str, json=None, **kwargs):
+        return self._make_request("PATCH", path, json_data=json, **kwargs)
 
 
 class ResponseWrapper:

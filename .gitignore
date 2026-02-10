@@ -68,3 +68,6 @@ htmlcov/
 .env
 .env.dev
 .env.prod
+
+# Custom file/note taking dir.
+work/

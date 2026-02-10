@@ -28,3 +28,20 @@ export {
   type ProcessBarcodeResult,
   type ItemData,
 } from './barcode';
+
+// Items API
+export {
+  getItems,
+  getItem,
+  updateItem,
+  deleteItem,
+  type Item,
+  type ItemsListResponse,
+} from './items';
+
+// Locations API
+export {
+  getLocations,
+  createLocation,
+  type Location,
+} from './locations';

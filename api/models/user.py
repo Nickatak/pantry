@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class CustomUserManager(BaseUserManager):
@@ -63,3 +65,17 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+DEFAULT_LOCATIONS = ["Pantry", "Fridge", "Freezer", "Kitchen Counter"]
+
+
+@receiver(post_save, sender=CustomUser)
+def create_default_locations(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    from .location import Location
+
+    for name in DEFAULT_LOCATIONS:
+        Location.objects.get_or_create(user=instance, name=name)
