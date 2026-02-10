@@ -2,7 +2,7 @@
  * Hook for managing camera stream initialization and lifecycle
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type DetectionMethod = 'barcodedetector' | 'html5qrcode' | null;
 
@@ -27,21 +27,14 @@ export const useCamera = (
   const [cameraActive, setCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectionMethod, setDetectionMethod] = useState<DetectionMethod>(null);
+  const initializingRef = useRef(false);
 
-  const initializeCamera = async () => {
+  const initializeCamera = useCallback(async () => {
+    if (initializingRef.current || cameraActive) {
+      return;
+    }
+    initializingRef.current = true;
     try {
-      console.log('Requesting camera permissions...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          focusMode: 'continuous',
-        } as MediaTrackConstraints & { focusMode: string },
-      });
-
-      console.log('✓ Camera permissions granted');
-
       // Check if BarcodeDetector is supported
       let isSupported = false;
       if ('BarcodeDetector' in window) {
@@ -51,60 +44,71 @@ export const useCamera = (
           const barcodeDetectorClass = (window as any).BarcodeDetector;
           new barcodeDetectorClass({ formats: ['qr_code'] });
           isSupported = true;
-          console.log('✓ BarcodeDetector API is supported');
-
-          // Use BarcodeDetector with the stream
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-
-            // Wait for the video to actually have frames before marking as active
-            const handleCanPlay = () => {
-              setCameraActive(true);
-              videoRef.current?.removeEventListener('canplay', handleCanPlay);
-            };
-            videoRef.current.addEventListener('canplay', handleCanPlay);
-
-            setDetectionMethod('barcodedetector');
-            onDetectionMethodChange?.('barcodedetector');
-          }
+          // BarcodeDetector supported; use native flow.
         } catch (e) {
-          console.log('✗ BarcodeDetector API exists but not fully supported:', e);
-          stream.getTracks().forEach((track) => track.stop());
+          console.error(
+            'BarcodeDetector API exists but is not fully supported:',
+            e
+          );
           isSupported = false;
         }
       }
 
       if (!isSupported) {
-        // Stop the stream - html5-qrcode will request its own
-        stream.getTracks().forEach((track) => track.stop());
-
         // Fall back to html5-qrcode for desktop browsers
-        console.log('↻ Initializing html5-qrcode for desktop barcode detection');
+        // Fall back to html5-qrcode for desktop browsers.
         setDetectionMethod('html5qrcode');
         onDetectionMethodChange?.('html5qrcode');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          focusMode: 'continuous',
+        } as MediaTrackConstraints & { focusMode: string },
+      });
+
+      // Use BarcodeDetector with the stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+
+        // Wait for the video to actually have frames before marking as active
+        const handleCanPlay = () => {
+          setCameraActive(true);
+          videoRef.current?.removeEventListener('canplay', handleCanPlay);
+        };
+        videoRef.current.addEventListener('canplay', handleCanPlay);
+
+        setDetectionMethod('barcodedetector');
+        onDetectionMethodChange?.('barcodedetector');
       }
     } catch (err) {
       const message =
         'Failed to access camera. Please ensure you have granted camera permissions.';
       setError(message);
       console.error('Camera access error:', err);
+    } finally {
+      initializingRef.current = false;
     }
-  };
+  }, [cameraActive, onDetectionMethodChange]);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (videoRef.current?.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
       tracks.forEach((track) => track.stop());
       setCameraActive(false);
     }
-  };
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [stopCamera]);
 
   return {
     videoRef,

@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface UseHtml5ScannerOptions {
   onDetection: (barcode: string) => void;
@@ -28,20 +28,21 @@ export const useHtml5Scanner = ({
   onScannerReady,
   detectionMethodActive,
 }: UseHtml5ScannerOptions) => {
-  const html5ScannerRef = useRef<InstanceType<typeof Html5QrcodeScanner> | null>(
-    null
-  );
+  const html5ScannerRef = useRef<InstanceType<typeof Html5Qrcode> | null>(null);
+  const initializingRef = useRef(false);
 
   const initializeHtml5Scanner = async () => {
+    if (initializingRef.current || html5ScannerRef.current) {
+      return;
+    }
+    initializingRef.current = true;
     try {
       // Check if container exists
       const container = document.getElementById('barcode-scanner-container');
       if (!container) {
-        console.error('Container not found: barcode-scanner-container');
+        console.error('Scanner container not found in DOM');
         throw new Error('Scanner container not found in DOM');
       }
-
-      console.log('Container found, initializing html5-qrcode scanner...');
 
       // Get the actual aspect ratio from the camera
       let aspectRatio = 1.77778; // Default fallback
@@ -54,75 +55,60 @@ export const useHtml5Scanner = ({
 
         if (containerWidth && containerHeight) {
           aspectRatio = containerWidth / containerHeight;
-          console.log('Camera aspect ratio calculated:', aspectRatio);
         }
       } catch (e) {
-        console.log('Could not determine camera aspect ratio, using default:', e);
+        console.error('Could not determine camera aspect ratio, using default:', e);
       }
 
-      const scanner = new Html5QrcodeScanner(
-        'barcode-scanner-container',
+      const scanner = new Html5Qrcode('barcode-scanner-container');
+
+      await scanner.start(
+        { facingMode: 'environment' },
         {
           fps: 30,
           qrbox: { width: 250, height: 250 },
           aspectRatio: aspectRatio,
           disableFlip: false,
-          showTorchButtonIfSupported: true,
-          showZoomedQrImage: false,
         },
-        false
+        (decodedText) => {
+          onDetection(decodedText);
+          try {
+            scanner.pause(true);
+          } catch (e) {
+            console.error('Error pausing scanner:', e);
+          }
+        },
+        () => {}
       );
 
       html5ScannerRef.current = scanner;
-
-      scanner.render(
-        async (decodedText) => {
-          // Barcode detected
-          console.log('Barcode detected via html5-qrcode:', decodedText);
-          onDetection(decodedText);
-
-          // Pause the scanner to stop immediate re-detection
-          if (html5ScannerRef.current) {
-            try {
-              await html5ScannerRef.current.pause();
-              console.log('Scanner paused, ready for user action');
-            } catch (e) {
-              console.log('Error pausing scanner:', e);
-            }
-          }
-        },
-        (errorMessage) => {
-          // Not a critical error, just logging failed attempts
-          console.debug('html5-qrcode scan attempt:', errorMessage);
-        }
-      );
-
-      // Wait for the video element inside the container to actually start rendering
-      const checkVideoReady = () => {
-        const videoElement = document.querySelector('#barcode-scanner-container video');
-        if (videoElement && (videoElement as HTMLVideoElement).readyState >= 2) {
-          console.log('✓ html5-qrcode video stream ready');
-          onScannerReady?.();
-        } else {
-          setTimeout(checkVideoReady, 100);
-        }
-      };
-      checkVideoReady();
+      onScannerReady?.();
     } catch (err) {
       console.error('Failed to initialize html5-qrcode scanner:', err);
+      html5ScannerRef.current = null;
       throw err;
+    } finally {
+      initializingRef.current = false;
     }
   };
 
   const clearScanner = async () => {
-    if (html5ScannerRef.current) {
-      try {
-        await html5ScannerRef.current.clear();
-        html5ScannerRef.current = null;
-        console.log('Scanner cleared');
-      } catch (err) {
-        console.log('Could not clear scanner:', err);
-      }
+    if (!html5ScannerRef.current) {
+      return;
+    }
+
+    try {
+      await html5ScannerRef.current.stop();
+    } catch (err) {
+      console.error('Could not stop scanner:', err);
+    }
+
+    try {
+      html5ScannerRef.current.clear();
+    } catch (err) {
+      console.error('Could not clear scanner:', err);
+    } finally {
+      html5ScannerRef.current = null;
     }
   };
 
@@ -136,8 +122,12 @@ export const useHtml5Scanner = ({
         });
       }, 100);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearScanner();
+      };
     }
+    return () => {};
   }, [detectionMethodActive]);
 
   // Cleanup on unmount
