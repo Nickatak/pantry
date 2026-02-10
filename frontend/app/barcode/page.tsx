@@ -40,6 +40,7 @@ export default function BarcodePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraInitializationRequested, setCameraInitializationRequested] =
     useState(false);
+  const cameraInitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Custom hooks for separation of concerns
   const camera = useCamera();
@@ -92,7 +93,41 @@ export default function BarcodePage() {
     if (cameraInitializationRequested) {
       camera.initializeCamera();
     }
-  }, [cameraInitializationRequested]);
+  }, [cameraInitializationRequested, camera.initializeCamera]);
+
+  useEffect(() => {
+    if (!cameraInitializationRequested) {
+      if (cameraInitTimeoutRef.current) {
+        clearTimeout(cameraInitTimeoutRef.current);
+        cameraInitTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (camera.cameraActive || camera.error) {
+      if (cameraInitTimeoutRef.current) {
+        clearTimeout(cameraInitTimeoutRef.current);
+        cameraInitTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (!camera.cameraActive) {
+        camera.setError(
+          'Camera stream not ready. Please retry or check permissions.'
+        );
+      }
+    }, 5000);
+
+    cameraInitTimeoutRef.current = timeoutId;
+    return () => clearTimeout(timeoutId);
+  }, [
+    cameraInitializationRequested,
+    camera.cameraActive,
+    camera.error,
+    camera.setError,
+  ]);
 
   // Handle manual capture for BarcodeDetector mode
   const handleManualCapture = async () => {
@@ -123,13 +158,25 @@ export default function BarcodePage() {
           }, 100);
         });
       } catch (err) {
-        console.log('Error clearing scanner, reinitializing camera...', err);
+        console.error('Error clearing scanner, reinitializing camera...', err);
         html5Scanner.html5ScannerRef.current = null;
         camera.initializeCamera();
       }
     } else {
       camera.initializeCamera();
     }
+  };
+
+  const handleRetryCamera = async () => {
+    camera.setError(null);
+    camera.stopCamera();
+    if (html5Scanner.html5ScannerRef.current) {
+      await html5Scanner.clearScanner();
+    }
+    setCameraInitializationRequested(false);
+    setTimeout(() => {
+      setCameraInitializationRequested(true);
+    }, 50);
   };
 
 
@@ -147,6 +194,14 @@ export default function BarcodePage() {
 
           <div className="p-6 space-y-6">
             <ErrorDisplay error={camera.error} />
+            {camera.error && (
+              <button
+                onClick={handleRetryCamera}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition"
+              >
+                Retry Camera
+              </button>
+            )}
 
             <CameraView
               cameraInitializationRequested={cameraInitializationRequested}

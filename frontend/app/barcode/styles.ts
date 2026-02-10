@@ -40,7 +40,9 @@ export const html5QrcodeScannerStyles = `
   /* Video wrapper - stretches to fill parent and maintains aspect ratio */
   #barcode-scanner-container__scan_region video {
     flex: 1 !important;
-    height: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
   }
 
   /* Hide html5-qrcode branding line */
@@ -48,13 +50,8 @@ export const html5QrcodeScannerStyles = `
     display: none !important;
   }
 
-  /* Hide info icon watermark (top-right corner) */
-  #barcode-scanner-container img[src*="data:image"] {
-    display: none !important;
-  }
-
-  /* Hide any SVG watermarks */
-  #barcode-scanner-container svg {
+  /* Hide only the small info icon watermark (top-right corner) */
+  #barcode-scanner-container__scan_region img.html5-qrcode-element {
     display: none !important;
   }
 `;
