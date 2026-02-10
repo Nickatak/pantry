@@ -8,8 +8,9 @@
 
 'use client';
 
-import { useState } from 'react';
-import { lookupProductByUPC, createItem } from '../../lib/api/barcode';
+import { useEffect, useState } from 'react';
+import { lookupProductByUPC, createItem, addItemToUser } from '../../lib/api/barcode';
+import { getLocations, type Location } from '../../lib/api/locations';
 
 interface ResultsViewProps {
   barcodeCode: string;
@@ -29,6 +30,8 @@ export const ResultsView = ({
   const [success, setSuccess] = useState(false);
   const [productFound, setProductFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | ''>('');
 
   // Form state for item creation
   const [itemData, setItemData] = useState({
@@ -37,6 +40,25 @@ export const ResultsView = ({
     description: '',
     alias: '',
   });
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const data = await getLocations();
+        setLocations(data);
+        const pantry = data.find((location) => location.name === 'Pantry');
+        if (pantry) {
+          setSelectedLocationId(pantry.id);
+        } else if (data.length > 0) {
+          setSelectedLocationId(data[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load locations', err);
+      }
+    };
+
+    fetchLocations();
+  }, []);
 
   const handleConfirmUPC = async () => {
     // Validate UPC
@@ -55,7 +77,6 @@ export const ResultsView = ({
 
       if (result.found && result.product_data) {
         // Successfully found - pre-fill form with external data
-        setProductData(result.product_data);
         setItemData({
           barcode: upc,
           title: (result.product_data.title as string) || '',
@@ -65,7 +86,6 @@ export const ResultsView = ({
         setProductFound(true);
       } else {
         // Product not found in external database - allow user to manually enter data
-        setProductData(null);
         setItemData({
           barcode: upc,
           title: '',
@@ -101,7 +121,11 @@ export const ResultsView = ({
 
     try {
       // Send item data to backend to create/save in database
-      await createItem(itemData);
+      const createdItem = await createItem(itemData);
+      await addItemToUser(
+        createdItem.id,
+        selectedLocationId === '' ? undefined : selectedLocationId
+      );
       // Show success message
       setSuccess(true);
       // Wait 2 seconds to show confirmation, then reset scanner
@@ -249,6 +273,34 @@ export const ResultsView = ({
                     }`}
                     placeholder="Alternative name"
                   />
+                </div>
+
+                {/* Location Field */}
+                <div>
+                  <label className="text-sm font-medium text-gray-600">
+                    Location
+                  </label>
+                  <select
+                    value={selectedLocationId}
+                    onChange={(e) =>
+                      setSelectedLocationId(
+                        e.target.value ? Number(e.target.value) : ''
+                      )
+                    }
+                    disabled={saving || locations.length === 0}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none text-black disabled:bg-gray-100 disabled:text-gray-500"
+                  >
+                    <option value="">
+                      {locations.length === 0
+                        ? 'Loading locations...'
+                        : 'Select a location'}
+                    </option>
+                    {locations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}

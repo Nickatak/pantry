@@ -151,6 +151,24 @@ class TestBarcodeInitialization:
             or "capture" in page_content.lower()
         )
 
+    @pytest.mark.asyncio
+    async def test_barcode_page_shows_camera_initializing_state(
+        self, authenticated_page, db
+    ):
+        """Test that the initializing camera state is visible after enabling."""
+        await authenticated_page.goto(
+            "http://localhost:3000/barcode", wait_until="networkidle"
+        )
+
+        enable_camera_button = await authenticated_page.query_selector(
+            "button:has-text('Enable Camera')"
+        )
+        if enable_camera_button:
+            await enable_camera_button.click()
+
+        page_content = await authenticated_page.content()
+        assert "Initializing camera" in page_content
+
 
 class TestBarcodeCapture:
     """Test barcode capture functionality."""
@@ -668,6 +686,109 @@ class TestBarcodeImageSubmissionFlow:
         # 2. The item lookup endpoint mock is configured correctly
         # 3. When auto-detection occurs, the frontend would call /api/items/{barcode}
         # 4. And would receive product details to display
+
+
+class TestBarcodeLocationSelection:
+    """Test location selection when adding items from barcode flow."""
+
+    @pytest.mark.asyncio
+    async def test_barcode_flow_uses_selected_location(
+        self, authenticated_page, authenticated_client
+    ):
+        # Mock locations list before page load
+        async def handle_locations(route):
+            await route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    [
+                        {"id": 10, "name": "Pantry"},
+                        {"id": 11, "name": "Freezer"},
+                    ]
+                ),
+            )
+
+        await authenticated_page.route("**/api/locations/**", handle_locations)
+
+        # Mock lookup-product
+        async def handle_lookup_product(route):
+            await route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps({"found": False, "product_data": None}),
+            )
+
+        await authenticated_page.route(
+            "**/api/items/lookup-product/**", handle_lookup_product
+        )
+
+        # Mock create item
+        async def handle_create_item(route):
+            if route.request.method != "POST":
+                await route.fallback()
+                return
+            await route.fulfill(
+                status=201,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "id": 123,
+                        "barcode": "1231231231231",
+                        "title": "Canned Tomatoes",
+                        "description": "",
+                        "alias": "",
+                        "brand": None,
+                    }
+                ),
+            )
+
+        await authenticated_page.route("**/api/items/", handle_create_item)
+
+        add_to_user_body = {}
+
+        async def handle_add_to_user(route):
+            nonlocal add_to_user_body
+            add_to_user_body = await route.request.post_data_json()
+            await route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "id": 123,
+                        "barcode": "1231231231231",
+                        "title": "Canned Tomatoes",
+                        "description": "",
+                        "alias": "",
+                        "brand": None,
+                        "quantity": 1,
+                    }
+                ),
+            )
+
+        await authenticated_page.route(
+            "**/api/items/123/add-to-user/**", handle_add_to_user
+        )
+
+        await authenticated_page.goto(
+            "http://localhost:3000/barcode", wait_until="networkidle"
+        )
+
+        # Enter barcode and confirm
+        await authenticated_page.fill(
+            'input[placeholder="Enter barcode"]', "1231231231231"
+        )
+        await authenticated_page.click('button:has-text("Confirm")')
+
+        # Fill title and select location
+        await authenticated_page.fill(
+            'input[placeholder="Product name"]', "Canned Tomatoes"
+        )
+        await authenticated_page.select_option("select", label="Freezer")
+
+        await authenticated_page.click('button:has-text("Save Item")')
+
+        await authenticated_page.wait_for_timeout(300)
+        assert add_to_user_body.get("location_id") == 11
 
 
 class TestBarcodePageNavigation:

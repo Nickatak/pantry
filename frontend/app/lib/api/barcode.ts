@@ -133,6 +133,42 @@ export async function createItem(itemData: {
   return response.json();
 }
 
+/**
+ * Add an existing item to the current user
+ * Increments quantity if already owned
+ *
+ * @param itemId - Item ID to add to user
+ * @returns Updated item data with quantity
+ * @throws Error if request fails
+ */
+export async function addItemToUser(
+  itemId: number,
+  locationId?: number
+): Promise<ItemData> {
+  let response;
+  const body = locationId ? { location_id: locationId } : {};
+
+  try {
+    response = await fetch(`${API_BASE_URL}/items/${itemId}/add-to-user/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken() || ''}`,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('Backend server is down. Please try again later.');
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to add item to user');
+  }
+
+  return response.json();
+}
+
 export interface ItemData {
   id: number;
   barcode: string;
